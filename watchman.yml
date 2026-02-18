@@ -1,0 +1,13 @@
+watchman:
+  plugin-root: /home/carlc/workspace/golang/watchman/watchman/plugins
+  watcher:
+    paths: # 监控路径(list);这部分应该是动态的
+      - /home/carlc/maple
+    buffer-size-kb: 64
+  cache:
+    # 文件句柄缓存; 避免每次都打开文件; 缓存大小与时间(单位:秒)
+    fd-size: 4096
+    fd-ttl: 300
+    # 文件路径缓存; 避免短时间内同一路径发送多个事件; 缓存大小与时间(单位:秒)
+    fp-size: 5000
+    fp-ttl: 5
