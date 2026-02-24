@@ -36,8 +36,6 @@ type Watchman struct {
 	listenerMu      sync.RWMutex
 	stopOnce        sync.Once
 	plugins         []*wmp.Handler
-	mu              sync.RWMutex // 保护共享资源访问
-	stopped         bool
 }
 
 type Event struct {
