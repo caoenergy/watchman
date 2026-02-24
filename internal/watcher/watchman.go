@@ -3,10 +3,10 @@ package watcher
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -36,6 +36,8 @@ type Watchman struct {
 	listenerMu      sync.RWMutex
 	stopOnce        sync.Once
 	plugins         []*wmp.Handler
+	mu              sync.RWMutex // 保护共享资源访问
+	stopped         bool
 }
 
 type Event struct {
@@ -269,7 +271,7 @@ func (wm *Watchman) resolve(data []byte) (string, string, bool) {
 	}
 
 	handleRaw := handleData[FileHandleLen : FileHandleLen+int(handleBytes)]
-	cacheKey := base64.StdEncoding.EncodeToString(handleRaw)
+	cacheKey := wm.generateCacheKey(handleType, handleRaw)
 
 	basePath, ok := wm.fdcManager.Get(cacheKey)
 
@@ -305,6 +307,15 @@ func (wm *Watchman) resolve(data []byte) (string, string, bool) {
 	}
 
 	return basePath, "", true
+}
+
+func (wm *Watchman) generateCacheKey(handleType int32, handleRaw []byte) string {
+	h := fnv.New64a()
+	var typeBuf [4]byte
+	binary.LittleEndian.PutUint32(typeBuf[:], uint32(handleType))
+	_, _ = h.Write(typeBuf[:])
+	_, _ = h.Write(handleRaw)
+	return fmt.Sprintf("%016x", h.Sum64())
 }
 
 func (wm *Watchman) maskToString(mask uint64) string {
